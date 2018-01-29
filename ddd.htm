@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>der die das?</title>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+	<link rel="icon" href="favicon.ico" />
+
+	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.js"></script>
+
+	<style type="text/css">
+		html, body {
+			font-family: helvetica;
+			text-align: center;
+			font-size: 60pt;
+			height: 100%;
+			width: 100%;
+			margin: 0;
+			padding: 0;
+		}
+
+		a {
+			text-decoration: none;
+			color: inherit;
+		}
+
+		a:hover {
+			text-decoration: underline;
+		}
+
+		#top{
+			height: 10%;
+		}
+
+		input, button {
+   			font-size: 30pt;
+   			font-family: inherit;
+    		padding: 5px;
+    		margin: 5px;
+    		/* the following ensures they're all using the same box-model for rendering */
+		    -moz-box-sizing: content-box; /* or `border-box` */
+			-webkit-box-sizing: content-box;
+			box-sizing: content-box;
+		}
+
+		#input{
+   			width: 300px;
+   			height: 48px;
+   			color: #888;
+		}
+
+		#search{
+			cursor: pointer;
+   			width: 48px;
+   			height: 48px;
+   			border: 0;
+ 			background: url(right.png);
+ 			background-repeat: no-repeat;
+ 			vertical-align: bottom;
+		}
+
+		#article{
+			font-weight: bold;
+		}
+
+	</style>
+
+</head>
+<body>
+
+	<p id = "top"></p>
+	<p id = "answer">der die das?</p>
+	<input type="text" id="input" value="Nutella">
+	<button id="search"></button>
+
+	<script type="text/javascript">
+
+	$("#input").keyup(function(event){
+	    if(event.keyCode == 13){
+	        $("#search").click();
+	    }
+	});
+	
+	var origValues = new Array();
+	$("#input").click(function(){
+        if(
+            origValues[this.name] == null
+            || this.value == origValues[this.name]
+        ) {
+            origValues[this.name] = this.value;
+            this.value = '';
+            $(this).css('color','#000');
+        }
+	});
+
+
+	$("#search").click(function ()  {
+
+		var rawInput = $('#input').val();
+
+		var word = rawInput.toUpperCase().substr(0,1).concat( rawInput.toLowerCase().substr( 1, rawInput.length ) ) ;
+
+		$('#input').val(word);
+
+		var apiCallBase = 'https://de.wiktionary.org/w/api.php?action=query&format=json&prop=revisions&rvprop=content&indexpageids&callback=?&titles=';
+		var apiCall = apiCallBase.concat( word );
+
+		$.getJSON( apiCall, (function parser(data) {
+
+			var answer = [];
+
+			if (data['query']['pageids'][0] == '-1'){
+
+				answer.push( word.concat(' gibt es nicht') );
+			}
+			else{
+
+				var urlBase = 'http://de.wiktionary.org/wiki/';
+				answer.push('<a href="' + urlBase + word + '">');
+
+				var content = data['query']['pages'][data['query']['pageids'][0]]['revisions']['0']['*'].substr(0, 200);
+
+				var wortartPos = content.search('{{Wortart');
+				var wortart = content.substr(wortartPos + 10, 3);
+
+				if (wortart != 'Sub'){
+
+					answer.push( word.concat(' ist kein Substantiv') );
+				}
+				else{
+
+					var articles = {'m': 'der', 'f': 'die', 'n': 'das'};
+					var article = articles[ content.substr(wortartPos + 34, 1) ];
+					answer.push('<span id="article">' + article+ '</span>');
+					
+					var i = 1;
+
+					while ( article = articles[ content.substr(wortartPos + 34 + 7 * i++, 1) ] )
+					{
+						answer.push('/ <span id="article">' + article + '</span>');
+					}
+
+					answer.push(word);
+				};
+			};
+			answer.push('</a>');
+			$('#answer').html(answer.join(' '));
+
+		}));
+	});
+
+	</script>
+
+</body>
+</html>
